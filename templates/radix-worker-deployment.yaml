@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "radix.fullname" . }}-worker
+  labels:
+    {{- include "radix.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.radixworker.autoscaling.enabled }}
+  replicas: {{ .Values.radixworker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "radix.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.radixworker.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "radix.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.radixworker.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.radixworker.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-api
+          securityContext:
+            {{- toYaml .Values.radixworker.securityContext | nindent 12 }}
+          image: "{{ .Values.radixworker.image.repository }}:{{ .Values.radixworker.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.radixworker.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.radixworker.service.port }}
+              protocol: TCP
+          env:
+            - name: RADIX_DATABASE_DATABASE
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_DATABASE
+                name: radix
+            - name: RADIX_DATABASE_PASSWORD
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_PASSWORD
+                name: radix
+            - name: RADIX_DATABASE_HOST
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_HOST
+                name: radix
+            - name: RADIX_DATABASE_USERNAME
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_USERNAME
+                name: radix
+            - name: RADIX_SERVICE_WORKER_WORKER_DEBUG
+              value: false
+            - name: RADIX_SERVICE_WORKER_PATH_STORAGE
+              value: {{ .Values.radixworker.storagePath }}
+            - name: RADIX_SERVICE_WORKER_PDFTOOLBOX_LICENSESERVER
+              value: {{ .Values.radixworker.licenseServer }}
+            - name: RADIX_SERVICE_WORKER_PDFTOOLBOX_PATH
+              value: {{ .Values.radixworker.pdftoolboxPath }}
+            - name: RADIX_API_HOST
+              value: {{ .Values.radixworker.radixApiHost }}
+            - name: RADIX_SERVICE_WORKER_WORKER_TIMEOUT
+              value: {{ .Values.radixworker.workerTimeout }}
+            - name: RADIX_REDIS_HOST
+              value: {{ .Values.radixworker.redisHost }}
+            - name: RADIX_API_PORT_TCP
+              value: {{ .Values.radixapi.service.port }}
+            - name: RADIX_SERVICE_WORKER_PORT
+              value: {{ .Values.radixworker.service.port }}
+            - name: RADIX_SERVICE_WORKER_WORKER_RETRYCOUNT
+              value: {{ .Values.radixworker.workerRetrycount }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.radixworker.healtcheck.path}}
+              port: {{ .Values.radixworker.healtcheck.port}}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.radixworker.healtcheck.path}}
+              port: {{ .Values.radixworker.healtcheck.port}}
+          resources:
+            {{- toYaml .Values.radixworker.resources | nindent 12 }}
+      {{- with .Values.radixworker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.radixworker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.radixworker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "radix.fullname" . }}-api
+  labels:
+    {{- include "radix.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.radixapi.autoscaling.enabled }}
+  replicas: {{ .Values.radixapi.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "radix.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.radixapi.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "radix.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.radixapi.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.radixapi.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-api
+          securityContext:
+            {{- toYaml .Values.radixapi.securityContext | nindent 12 }}
+          image: "{{ .Values.radixapi.image.repository }}:{{ .Values.radixapi.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.radixapi.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.radixapi.service.port }}
+              protocol: TCP
+          env:
+            - name: RADIX_SERVICE_WORKER_HOST
+              value: {{ .Values.radixapi.workerHost }}
+            - name: RADIX_API_PORT_HTTP
+              value: {{ .Values.radixapi.service.port }}
+            - name: RADIX_DATABASE_DATABASE
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_DATABASE
+                name: radix
+            - name: RADIX_DATABASE_PASSWORD
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_PASSWORD
+                name: radix
+            - name: RADIX_DATABASE_HOST
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_HOST
+                name: radix
+            - name: RADIX_DATABASE_USERNAME
+              valueFrom:
+              secretKeyRef:
+                key: RADIX_DATABASE_USERNAME
+                name: radix
+            - name: RADIX_FIXTURES_LOAD
+              value: false
+            - name: RADIX_PATH_STORAGE
+              value: {{ .Values.radixapi.storagePath }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/healthcheck
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /api/v1/healthcheck
+              port: http
+          resources:
+            {{- toYaml .Values.radixapi.resources | nindent 12 }}
+      {{- with .Values.radixapi.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.radixapi.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.radixapi.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
