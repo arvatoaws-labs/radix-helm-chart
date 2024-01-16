@@ -12,4 +12,5 @@ spec:
       protocol: TCP
       name: http
   selector:
+    app.kubernetes.io/component: radix-api
     {{- include "radix.selectorLabels" . | nindent 4 }}

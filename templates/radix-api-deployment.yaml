@@ -18,6 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        app.kubernetes.io/component: radix-api
         {{- include "radix.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.radixapi.imagePullSecrets }}
@@ -40,39 +41,52 @@ spec:
             - name: RADIX_SERVICE_WORKER_HOST
               value: {{ .Values.radixapi.workerHost }}
             - name: RADIX_API_PORT_HTTP
-              value: {{ .Values.radixapi.service.port }}
+              value: "{{ .Values.radixapi.service.port }}"
             - name: RADIX_DATABASE_DATABASE
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_DATABASE
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_DATABASE
+                  name: radix
             - name: RADIX_DATABASE_PASSWORD
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_PASSWORD
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_PASSWORD
+                  name: radix
             - name: RADIX_DATABASE_HOST
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_HOST
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_HOST
+                  name: radix
             - name: RADIX_DATABASE_USERNAME
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_USERNAME
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_USERNAME
+                  name: radix
             - name: RADIX_FIXTURES_LOAD
-              value: false
+              value: "false"
             - name: RADIX_PATH_STORAGE
               value: {{ .Values.radixapi.storagePath }}
+          startupProbe:
+            httpGet:
+              path: /api/v1/healthcheck
+              port: {{ .Values.radixapi.service.port }}
+            periodSeconds: 15
+            failureThreshold: 8
+            timeoutSeconds: 10
           livenessProbe:
             httpGet:
               path: /api/v1/healthcheck
-              port: http
+              port: {{ .Values.radixapi.service.port }}
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 10
           readinessProbe:
             httpGet:
               path: /api/v1/healthcheck
-              port: http
+              port: {{ .Values.radixapi.service.port }}
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 10
           resources:
             {{- toYaml .Values.radixapi.resources | nindent 12 }}
       {{- with .Values.radixapi.nodeSelector }}

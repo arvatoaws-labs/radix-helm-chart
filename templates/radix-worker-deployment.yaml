@@ -18,6 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        app.kubernetes.io/component: radix-worker
         {{- include "radix.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.radixworker.imagePullSecrets }}
@@ -27,7 +28,7 @@ spec:
       securityContext:
         {{- toYaml .Values.radixworker.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}-api
+        - name: {{ .Chart.Name }}-worker
           securityContext:
             {{- toYaml .Values.radixworker.securityContext | nindent 12 }}
           image: "{{ .Values.radixworker.image.repository }}:{{ .Values.radixworker.image.tag | default .Chart.AppVersion }}"
@@ -39,26 +40,26 @@ spec:
           env:
             - name: RADIX_DATABASE_DATABASE
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_DATABASE
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_DATABASE
+                  name: radix
             - name: RADIX_DATABASE_PASSWORD
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_PASSWORD
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_PASSWORD
+                  name: radix
             - name: RADIX_DATABASE_HOST
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_HOST
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_HOST
+                  name: radix
             - name: RADIX_DATABASE_USERNAME
               valueFrom:
-              secretKeyRef:
-                key: RADIX_DATABASE_USERNAME
-                name: radix
+                secretKeyRef:
+                  key: RADIX_DATABASE_USERNAME
+                  name: radix
             - name: RADIX_SERVICE_WORKER_WORKER_DEBUG
-              value: false
+              value: "false"
             - name: RADIX_SERVICE_WORKER_PATH_STORAGE
               value: {{ .Values.radixworker.storagePath }}
             - name: RADIX_SERVICE_WORKER_PDFTOOLBOX_LICENSESERVER
@@ -68,23 +69,36 @@ spec:
             - name: RADIX_API_HOST
               value: {{ .Values.radixworker.radixApiHost }}
             - name: RADIX_SERVICE_WORKER_WORKER_TIMEOUT
-              value: {{ .Values.radixworker.workerTimeout }}
+              value: "{{ .Values.radixworker.workerTimeout }}"
             - name: RADIX_REDIS_HOST
               value: {{ .Values.radixworker.redisHost }}
             - name: RADIX_API_PORT_TCP
-              value: {{ .Values.radixapi.service.port }}
+              value: "{{ .Values.radixapi.service.port }}"
             - name: RADIX_SERVICE_WORKER_PORT
-              value: {{ .Values.radixworker.service.port }}
+              value: "{{ .Values.radixworker.service.port }}"
             - name: RADIX_SERVICE_WORKER_WORKER_RETRYCOUNT
-              value: {{ .Values.radixworker.workerRetrycount }}
+              value: "{{ .Values.radixworker.workerRetrycount }}"
+          startupProbe:
+            httpGet:
+              path: /api/v1/healthcheck
+              port: 3001
+            periodSeconds: 15
+            failureThreshold: 8
+            timeoutSeconds: 10
           livenessProbe:
             httpGet:
-              path: {{ .Values.radixworker.healtcheck.path}}
-              port: {{ .Values.radixworker.healtcheck.port}}
+              path: /api/v1/healthcheck
+              port: 3001
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 10
           readinessProbe:
             httpGet:
-              path: {{ .Values.radixworker.healtcheck.path}}
-              port: {{ .Values.radixworker.healtcheck.port}}
+              path: /api/v1/healthcheck
+              port: 3001
+            periodSeconds: 15
+            failureThreshold: 3
+            timeoutSeconds: 10
           resources:
             {{- toYaml .Values.radixworker.resources | nindent 12 }}
       {{- with .Values.radixworker.nodeSelector }}
