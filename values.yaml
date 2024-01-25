@@ -1,13 +1,30 @@
+efs:
+  storageClassName: radix-efs
+  storageSize: 10Gi
+  
+efsToolbox:
+  storageClassName: radix-toolbox-efs
+  storageSize: 2Gi
+
+toolbox:
+  image:
+    repository: calibrateat/dockertoolbox
+    pullPolicy: IfNotPresent
+    tag: "13.0.580"
+
 radixapi:
   workerHost: radix-worker.example.local
   storagePath: /root/data
+  diskRootThreshold: 1048576
+  diskStorageThreshold: 1048576
+  environment: production
 
   replicaCount: 2
   image:
     repository: calibrateat/radix-api
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "1.2.1"
+    tag: "1.2.2"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -38,13 +55,13 @@ radixapi:
     type: ClusterIP
     port: 4000
 
-  resources: {}
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
 
   autoscaling:
     enabled: false
@@ -108,13 +125,13 @@ radixworker:
     port: 3001
     path: /api/v1/healthcheck 
 
-  resources: {}
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
 
   autoscaling:
     enabled: false
