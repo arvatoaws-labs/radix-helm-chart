@@ -27,6 +27,13 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.radixworker.podSecurityContext | nindent 8 }}
+      initContainers:
+       - name: toolbox-copy
+         image: "{{ .Values.toolbox.image.repository }}:{{ .Values.toolbox.image.tag | default .Chart.AppVersion }}"
+         command: ["/bin/sh", "-c", "cp -R -n /root/callas/* /efsvolume"]
+         volumeMounts:
+         - name: radix-toolbox-volume
+           mountPath: /efsvolume
       containers:
         - name: {{ .Chart.Name }}-worker
           securityContext:
@@ -37,6 +44,11 @@ spec:
             - name: http
               containerPort: {{ .Values.radixworker.service.port }}
               protocol: TCP
+          volumeMounts:
+            - name: radix-volume
+              mountPath: /root/data
+            - name: radix-toolbox-volume
+              mountPath: /root/pdftoolbox
           env:
             - name: RADIX_DATABASE_DATABASE
               valueFrom:
@@ -113,3 +125,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: radix-volume
+          persistentVolumeClaim:
+            claimName: radix-volume-claim
+        - name: radix-toolbox-volume
+          persistentVolumeClaim:
+            claimName: radix-toolbox-volume-claim

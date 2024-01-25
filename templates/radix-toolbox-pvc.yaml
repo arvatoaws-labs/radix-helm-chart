@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: radix-toolbox-volume-claim
+  namespace: radix
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: {{ .Values.efsToolbox.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.efsToolbox.storageSize}}

@@ -37,6 +37,9 @@ spec:
             - name: http
               containerPort: {{ .Values.radixapi.service.port }}
               protocol: TCP
+          volumeMounts:
+          - name: radix-volume
+            mountPath: /root/data
           env:
             - name: RADIX_SERVICE_WORKER_HOST
               value: {{ .Values.radixapi.workerHost }}
@@ -66,6 +69,18 @@ spec:
               value: "false"
             - name: RADIX_PATH_STORAGE
               value: {{ .Values.radixapi.storagePath }}
+            - name: RADIX_API_ENVIRONMENT
+              value: {{ .Values.radixapi.environment }}
+            - name: RADIX_API_DEBUG
+              value: "false"
+            - name: HEALTHCHECK_DISK_ROOT 
+              value: '/'
+            - name: HEALTHCHECK_DISK_STORAGE 
+              value: {{ .Values.radixapi.storagePath }}
+            - name: HEALTHCHECK_DISK_ROOT_THRESHOLD 
+              value: "{{ .Values.radixapi.diskRootThreshold }}"
+            - name: HEALTHCHECK_DISK_STORAGE_THRESHOLD 
+              value: "{{ .Values.radixapi.diskStorageThreshold }}"
           startupProbe:
             httpGet:
               path: /api/v1/healthcheck
@@ -101,3 +116,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: radix-volume
+          persistentVolumeClaim:
+            claimName: radix-volume-claim
